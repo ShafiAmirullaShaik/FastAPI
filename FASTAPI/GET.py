@@ -32,7 +32,7 @@ Items = [
 
 @app.get("/")
 def read_root():
-    message = "Welcome to the FastAPI application!"
+    message = "Welcome to the FastAPI application! Created by Qamar Ali Shaik"
     return {"notification": message}
 
 @app.get("/about")
