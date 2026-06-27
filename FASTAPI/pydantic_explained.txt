@@ -1,0 +1,256 @@
+Pydantic Model Concepts Used in patient_models.py
+==============================================
+
+1. BaseModel
+-----------
+Definition:
+- `BaseModel` is the base class for creating Pydantic models.
+- It defines the shape of your data and enables automatic validation.
+
+Interview ready:
+- "BaseModel is like a form template: it says what fields are allowed, what types they should be, and how to validate them."
+
+Example:
+```python
+class Patient(BaseModel):
+    name: str
+    age: int
+```
+
+
+2. Field(...)
+--------------
+Definition:
+- `Field(...)` marks a field as required and optionally adds validation constraints.
+- `...` means the field must be present.
+
+Interview ready:
+- "Field is used to attach rules to a field, like minimum values or titles, and `...` means the field is required."
+
+Example:
+```python
+age: int = Field(..., ge=0)
+```
+
+
+3. Annotated
+-------------
+Definition:
+- `Annotated` allows attaching metadata or validation rules to a type.
+- It is helpful when you want to combine a type with a `Field` or other metadata.
+
+Interview ready:
+- "Annotated lets us label a data type with extra validation instructions, similar to writing rules next to a form field."
+
+Example:
+```python
+name: Annotated[str, Field(..., max_length=100)]
+```
+
+
+4. EmailStr
+------------
+Definition:
+- `EmailStr` is a Pydantic type that validates email format.
+- It is stricter than `str` because it checks the email structure.
+
+Interview ready:
+- "EmailStr is a built-in type for validating that a value is a valid email address."
+
+Example:
+```python
+email: EmailStr
+```
+
+
+5. Optional[T]
+---------------
+Definition:
+- `Optional[T]` means the field can be of type `T` or `None`.
+- It makes the field optional in the model.
+
+Interview ready:
+- "Optional means the field can be left empty, and if it is provided it must match the specified type."
+
+Example:
+```python
+height: Optional[float] = None
+```
+
+
+6. List[str] and Dict[str, str]
+--------------------------------
+Definition:
+- `List[str]` validates that the field is a list of strings.
+- `Dict[str, str]` validates that the field is a dictionary with string keys and values.
+
+Interview ready:
+- "These are container types: one validates a list of strings, the other validates a dictionary of string-to-string values."
+
+Example:
+```python
+allergies: List[str]
+contnact_details: Dict[str, str]
+```
+
+
+7. Nested BaseModel
+-------------------
+Definition:
+- A nested `BaseModel` is a model used inside another model.
+- It provides structured validation for grouped data.
+
+Interview ready:
+- "A nested model is a child object inside the main model, like an address form inside a patient form."
+
+Example:
+```python
+class Address(BaseModel):
+    street: str
+    city: str
+
+address: Address
+```
+
+
+8. ValidationError
+------------------
+Definition:
+- `ValidationError` is raised when model input fails validation.
+- It contains details about which fields failed and why.
+
+Interview ready:
+- "ValidationError is the error returned when the submitted data does not match the model rules."
+
+Example:
+```python
+try:
+    patient = Patient(**data)
+except ValidationError as e:
+    print(e.errors())
+```
+
+
+9. @field_validator
+--------------------
+Definition:
+- `@field_validator` validates one field after its basic type validation.
+- It is useful for custom rules specific to a single field.
+
+Interview ready:
+- "field_validator is like a dedicated inspector for one field, checking custom rules after the type is confirmed."
+
+Example:
+```python
+@field_validator('email')
+@classmethod
+def validate_email(cls, v):
+    if not v.endswith('@gmail.com'):
+        raise ValueError('Invalid email domain')
+    return v
+```
+
+
+10. @model_validator(mode='after')
+----------------------------------
+Definition:
+- `@model_validator(mode='after')` runs after the whole model is built and validated.
+- It can enforce rules that depend on multiple fields.
+
+Interview ready:
+- "model_validator with mode='after' performs a final review of the entire model, checking relationships across fields."
+
+Example:
+```python
+@model_validator(mode='after')
+def validate_emergency_contact(self):
+    if self.age > 60 and 'emergency_contact' not in self.contnact_details:
+        raise ValueError('Emergency contact is required for patients over 60')
+    return self
+```
+
+10a. @model_validator(mode='before')
+-----------------------------------
+Definition:
+- `@model_validator(mode='before')` runs before the model is constructed.
+- It receives the raw input data and can normalize, clean, or transform it before validation.
+
+Interview ready:
+- "model_validator with mode='before' is used to preprocess or adjust incoming data before Pydantic checks field types and values."
+
+Example:
+```python
+@model_validator(mode='before')
+def normalize_input(cls, values):
+    values['name'] = values['name'].strip().title()
+    return values
+```
+
+Difference from `mode='after'`:
+- `before` sees raw input and can modify it.
+- `after` sees the final model instance and validates field interactions.
+
+
+11. @computed_field
+-------------------
+Definition:
+- `@computed_field` marks a property as computed from model values.
+- It is not provided by input, but derived from existing fields.
+
+Interview ready:
+- "computed_field creates a calculated property, like computing BMI from weight and height."
+
+Example:
+```python
+@computed_field
+@property
+def bmi(self) -> Optional[float]:
+    if self.weight and self.height:
+        return round(self.weight / (self.height ** 2), 2)
+    return None
+```
+
+
+12. model_dump and model_dump_json
+----------------------------------
+Definition:
+- `model_dump()` converts the model to a Python dictionary.
+- `model_dump_json()` converts the model to a JSON string.
+- `exclude=[...]` removes specified fields from the output.
+
+Interview ready:
+- "These methods serialize the validated model to dict or JSON, and you can exclude sensitive fields like email or age."
+
+Example:
+```python
+data = patient.model_dump()
+json_data = patient.model_dump_json(exclude=['email', 'age'])
+```
+
+
+13. strict=True
+---------------
+Definition:
+- `strict=True` prevents automatic coercion of data types.
+- It means the input must already be the correct type.
+
+Interview ready:
+- "strict=True makes validation stricter by rejecting values that are not already the correct type."
+
+Example:
+```python
+weight: Annotated[float, Field(..., strict=True)]
+```
+
+
+Summary
+-------
+These components work together to make `patient_models.py` robust and interview-ready:
+- `BaseModel` for structured data
+- `Field` and `Annotated` for field rules
+- special types like `EmailStr`
+- optional and container types for flexible shapes
+- nested models for grouped data
+- field and model validators for custom business rules
+- computed fields for derived values
+- serialization methods for output
