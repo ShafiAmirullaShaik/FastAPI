@@ -1,1 +1,3 @@
 myenv/`n__pycache__/`n*.pyc`n.pytest_cache/`n
+.venv
+myenv
